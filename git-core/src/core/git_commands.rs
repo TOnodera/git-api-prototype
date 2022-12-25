@@ -1,53 +1,11 @@
-use crate::types::{
-    errors::{Error, ErrorDetail},
-    types::Result,
-    Env,
-};
-use serde::{Deserialize, Serialize};
-
-#[derive(Serialize, Deserialize)]
-pub struct CommitHash {
-    pub hash: String,
-}
-
-impl CommitHash {
-    pub fn new(hash: String) -> Result<Self> {
-        if hash.len() != 40 {
-            return Err(Box::new(Error::InvalidValueError(ErrorDetail::new(
-                "ハッシュ値が不正です",
-                "ハッシュ値の値が40文字ではありません",
-            ))));
-        }
-        Ok(Self { hash })
-    }
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Branch {
-    pub name: String,
-    pub head_hash: CommitHash,
-}
-
-impl Branch {
-    pub fn new(name: String, head_hash: String) -> Result<Self> {
-        let head_hash = CommitHash::new(head_hash)?;
-        Ok(Self { name, head_hash })
-    }
-}
-
-/// とりあえず最初はこれでやってみる
-#[derive(Serialize, Deserialize)]
-pub struct CommitInfo {
-    pub commit_hash: CommitHash,
-    pub parent_hash: CommitHash,
-    pub author: String,
-    pub committer: String,
-    pub author_email: String,
-    pub committer_email: String,
-}
+use crate::types::{types::Result, Env};
 
 pub struct GitCommands {
     pub env: Env,
+}
+
+pub struct GitLogOptions {
+    pub max_count: Option<u32>,
 }
 
 impl GitCommands {
@@ -61,15 +19,25 @@ impl GitCommands {
         Ok(stdout.to_string())
     }
 
-    pub fn git_log(&self, branch_name: String) -> Result<String> {
+    pub fn git_log(&self, branch_name: String, options: GitLogOptions) -> Result<String> {
         let format = "%H %T %P %an %ae %ad \"%ar\" %cn %ce %cd \"%cr\" [%s]";
-        let output = std::process::Command::new("git")
+        let mut binding = std::process::Command::new("git");
+        let output = binding
             .arg("log")
             .arg("--date=iso-local")
             .arg(format!("--pretty=format:\"{}\"", format))
             .arg("--date=format:%Y-%m-%d_%H:%M:%S")
-            .arg(branch_name)
-            .output()?;
+            .arg(branch_name);
+
+        // 取得するログ数の制限
+        if options.max_count != None {
+            output.arg(format!(
+                "--max-count={}",
+                options.max_count.map_or(10, |n| n)
+            ));
+        }
+
+        let output = output.output()?;
         let stdout = std::str::from_utf8(&output.stdout)?;
         Ok(stdout.to_string())
     }
@@ -78,14 +46,18 @@ impl GitCommands {
 /// 動作確認するようで、テストケースは未実装
 #[cfg(test)]
 mod GitCommandsTest {
-    use crate::types::{types::Result, Env};
+    use crate::{
+        core::git_commands::GitLogOptions,
+        types::{types::Result, Env},
+    };
 
     use super::GitCommands;
 
     #[test]
     pub fn git_log_test() -> Result<()> {
         let command = GitCommands::new(Env { dir: None });
-        let result = command.git_log("main".to_string())?;
+        let options = GitLogOptions { max_count: Some(2) };
+        let result = command.git_log("main".to_string(), options)?;
         println!("{}", result);
         Ok(())
     }
