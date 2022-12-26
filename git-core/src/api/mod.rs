@@ -70,12 +70,13 @@ trait GitApiInterface {
     // ブランチ情報を取得する
     fn get_branches(&self) -> Result<Vec<Branch>>;
     // 引数に指定されたハッシュからたどれるすべてのコミットを返す
-    fn get_commits(&self, hash: CommitHash) -> Result<Vec<CommitHash>>;
+    fn get_logs(&self, hash: CommitHash, options: GitLogOptions) -> Result<Vec<CommitHash>>;
     // コミット情報を取得する
     fn get_commit_info(&self, hash: CommitHash) -> Result<CommitInfo>;
 }
 
 impl GitApiInterface for GitApi {
+    // ブランチの一覧と先頭コミットを取得する
     fn get_branches(&self) -> Result<Vec<Branch>> {
         // ブランチ名を取得する
         let output = self.commands.git_branch()?;
@@ -98,10 +99,12 @@ impl GitApiInterface for GitApi {
         Ok(branches)
     }
 
-    fn get_commits(&self, hash: CommitHash) -> Result<Vec<CommitHash>> {
+    // 指定されたコミットからたどれるログを取得する
+    fn get_logs(&self, hash: CommitHash, options: GitLogOptions) -> Result<Vec<CommitHash>> {
         todo!()
     }
 
+    // 特定のコミットのコミット情報を取得する
     fn get_commit_info(&self, hash: CommitHash) -> Result<CommitInfo> {
         todo!()
     }
