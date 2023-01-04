@@ -1,7 +1,15 @@
+use mockall::automock;
+
 use crate::types::{types::Result, Env};
 
 pub struct GitCommands {
     pub env: Env,
+}
+
+#[automock]
+pub trait GitCommandsTrait {
+    fn git_branch(&self) -> Result<String>;
+    fn git_log(&self, commit_hash: String, options: GitLogOptions) -> Result<String>;
 }
 
 pub struct GitLogOptions {
@@ -67,6 +75,7 @@ mod GitCommandsTest {
 
     #[test]
     fn git_branch_test() -> Result<()> {
+        get_git_dir();
         let command = GitCommands::new(Env {
             dir: Some(get_git_dir()),
         });
@@ -76,6 +85,7 @@ mod GitCommandsTest {
 
     #[test]
     fn git_log_test() -> Result<()> {
+        get_git_dir();
         let command = GitCommands::new(Env { dir: None });
         let options = GitLogOptions { max_count: Some(2) };
         let result = command.git_log(

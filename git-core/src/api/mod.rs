@@ -67,10 +67,10 @@ impl GitApi {
 }
 
 trait GitApiInterface {
-    // ブランチ情報を取得する
+    // ブランチ情報得する
     fn get_branches(&self) -> Result<Vec<Branch>>;
     // 引数に指定されたハッシュからたどれるすべてのコミットを返す
-    fn get_logs(&self, hash: CommitHash, options: GitLogOptions) -> Result<Vec<CommitHash>>;
+    fn get_logs(&self, hash: CommitHash, options: GitLogOptions) -> Result<Vec<CommitInfo>>;
     // コミット情報を取得する
     fn get_commit_info(&self, hash: CommitHash) -> Result<CommitInfo>;
 }
@@ -100,8 +100,17 @@ impl GitApiInterface for GitApi {
     }
 
     // 指定されたコミットからたどれるログを取得する
-    fn get_logs(&self, hash: CommitHash, options: GitLogOptions) -> Result<Vec<CommitHash>> {
-        todo!()
+    fn get_logs(&self, hash: CommitHash, options: GitLogOptions) -> Result<Vec<CommitInfo>> {
+        let output = self.commands.git_log(hash.hash, options)?;
+        let converted_output = self.converter.git_log(output)?;
+        let results = Vec::<CommitInfo>::new();
+
+        // "%H %T %P %an %ae %ad \"%ar\" %cn %ce %cd \"%cr\" [%s]"
+        for result in &results {
+            todo!()
+        }
+
+        Ok(results)
     }
 
     // 特定のコミットのコミット情報を取得する
@@ -112,7 +121,16 @@ impl GitApiInterface for GitApi {
 
 #[cfg(test)]
 mod GitApiTest {
-    use crate::types::Env;
+
+    use mockall::{
+        automock, mock,
+        predicate::{self, *},
+    };
+
+    use crate::{
+        core::git_commands::{GitLogOptions, MockGitCommandsTrait},
+        types::Env,
+    };
 
     use super::{GitApi, GitApiInterface};
 
@@ -120,5 +138,16 @@ mod GitApiTest {
     fn get_branches_test() {
         let api = GitApi::new(Env::new(None));
         let value = api.get_branches();
+    }
+
+    #[test]
+    fn get_logs_test() {
+        let mut mock = MockGitCommandsTrait::new();
+        mock.expect_git_log()
+            .times(1)
+            .returning(|_, _| Ok("test".to_string()));
+        let api = GitApi::new(Env { dir: None });
+        api.commands
+            .git_log("hash".to_string(), GitLogOptions { max_count: Some(1) });
     }
 }

@@ -2,6 +2,8 @@ use regex::Regex;
 
 use crate::types::types::Result;
 
+use super::git_commands::GitLogOptions;
+
 pub struct Converters;
 /// git_commands.rsで取得できるコマンド出力の文字列をもう一段上の型に変換していく
 impl Converters {
